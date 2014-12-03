@@ -37,10 +37,13 @@ package com.example.camera;
 
 //Useful: out of sync: file>refresh and delete file
 
+import java.io.BufferedReader;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.text.DateFormat;
@@ -151,7 +154,7 @@ public class CameraPreview extends Activity implements OnClickListener{
 				isMeasuring=true;
 
 				//				//Turn on the flash
-				p.setFlashMode(Parameters.FLASH_MODE_TORCH);	
+				//				p.setFlashMode(Parameters.FLASH_MODE_TORCH);	
 
 				// Start the preview
 				//mCamera.startPreview();
@@ -312,6 +315,8 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 	int pp=0;
 	String hexStr="";
 	//private int indexFrame=0;
+	
+	private String FILENAME = "";
 
 	Preview(Context context) {
 		super(context);
@@ -419,7 +424,7 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 
 
 				//Turn on the flash
-//				parameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
+				parameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
 				mCamera.setParameters(parameters);	
 
 				//mPreviewSize = parameters.getPreviewSize();  
@@ -574,11 +579,8 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 
 		if (frameCount<nframe && frameCount!=-1){	
 			meanreds[frameCount]=mean;
-
-
 			frameCount++;
 			Log.d("FILE: ","RECORDING..."+frameCount);
-
 		}
 		else if(frameCount==-1){
 			Log.d("FILE: ","DONE!");
@@ -588,11 +590,35 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 			Log.d("FILE: ","CREATED!");
 			generateDATA();
 			frameCount=-1;
+			checkFile();
 		}
-
 	}  
 
-
+	private void checkFile() {
+		try {
+			File root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+			BufferedReader br = new BufferedReader(new FileReader(root.getAbsolutePath() + "/MyPPG/" + FILENAME));
+			String s = null;
+			int counter = 0;
+			while((s=br.readLine())!=null) {
+//				System.out.println(s);
+				if ((counter > 1) && (counter < meanreds.length+2)) {
+					calculateBPM(s);
+				}
+				counter++;
+			} 
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void calculateBPM(String s) {
+		String tokens[] = s.split("\t");
+		System.out.println(tokens[0] + " " + tokens[1] + " " + tokens[2]);
+		
+	}
+	
 	//This method writes the red pixel values in a text file and stored it in Downloads/MyPPG
 	public void generateDATA() {
 		//This will get the SD Card directory and create a folder named MyFiles in it.
@@ -607,6 +633,7 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 
 		//Now create the file in the above directory and write the contents into it
 		File file = new File(directory, "RedValues_"+date+".txt");
+		FILENAME = "RedValues_"+date+".txt";
 		FileOutputStream fOut;
 		try {
 			fOut = new FileOutputStream(file);
