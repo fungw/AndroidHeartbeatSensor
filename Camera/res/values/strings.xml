@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Strings shown in UI -->
+    <string name="app_name">BloodPulse</string>
+    <string name="start">Start</string>
+    <string name="status">Please Press Start</string>
+    <string name="result">Result</string>
+    <string name="switch_cam">Switch Camera</string>
+
+    <string name="camera_alert">Device has only one camera!</string>
+    <string name="permlab_flashlight">Flashlight permission</string>
+    <string name="permdesc_flashlight">Permission to turn on and off flashlight</string>
+    
+</resources>
