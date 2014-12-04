@@ -32,11 +32,13 @@
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
             android:layout_centerVertical="true"
+            android:layout_toRightOf="@+id/txt_status"
             android:padding="10dip"
             android:text=""
+            android:textColor="#ffffffff"
             android:textSize="15sp"
-            android:textStyle="bold"
-            android:textColor="#ffffffff" />
+            android:textStyle="bold" />
+
     </RelativeLayout>
 
     

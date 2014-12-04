@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
@@ -112,7 +113,6 @@ public class CameraPreview extends Activity implements OnClickListener{
 		txt_status=(TextView)findViewById(R.id.txt_status);
 		txt_result=(TextView)findViewById(R.id.txt_result);
 
-
 		//Set the buttons and the text accordingly
 		btn_startmeasure = (Button) findViewById(R.id.btn_startmeasure);
 		btn_startmeasure.setOnClickListener(this);
@@ -154,15 +154,20 @@ public class CameraPreview extends Activity implements OnClickListener{
 				isMeasuring=true;
 
 				//				//Turn on the flash
-				//				p.setFlashMode(Parameters.FLASH_MODE_TORCH);	
+				p.setFlashMode(Parameters.FLASH_MODE_TORCH);	
 
 				// Start the preview
-				//mCamera.startPreview();
+				mCamera.startPreview();
+				btn_startmeasure.setText("Stop");
 			} 
 			else{
-
+				txt_status.setText("Paused");
 				//Turn off the flash
 				p.setFlashMode(Parameters.FLASH_MODE_OFF);
+				mCamera.stopPreview();
+				txt_status.setText("BPM: " + mPreview.getBPM());
+				isMeasuring=false;
+				btn_startmeasure.setText("Start");
 			}
 
 			mCamera.setParameters(p);
@@ -249,9 +254,17 @@ public class CameraPreview extends Activity implements OnClickListener{
 
 	}
 
-
-
-
+	void stopTask() {
+		Parameters p = mCamera.getParameters();
+		txt_status.setText("Complete!");
+		//Turn off the flash
+		p.setFlashMode(Parameters.FLASH_MODE_OFF);
+		mCamera.stopPreview();
+		txt_status.setText("BPM: " + mPreview.getBPM());
+		isMeasuring=false;
+		mCamera.setParameters(p);
+		btn_startmeasure.setText("Stop");
+	}
 }
 
 
@@ -315,7 +328,7 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 	int pp=0;
 	String hexStr="";
 	//private int indexFrame=0;
-	
+
 	private String FILENAME = "";
 
 	Preview(Context context) {
@@ -367,8 +380,9 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 		if (mSupportedPreviewSizes != null) {
 			//Choose smallest Prewvie Size
 			//128x96
-			mPreviewSize = mSupportedPreviewSizes.get(mSupportedPreviewSizes.size() - 1);
-			//mPreviewSize= getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
+			//			mPreviewSize = mSupportedPreviewSizes.get(mSupportedPreviewSizes.size() - 1);
+			mPreviewSize = mSupportedPreviewSizes.get(mSupportedPreviewSizes.size() - 5);
+			//			mPreviewSize= getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
 
 			Log.i("finalwidth: ",""+mPreviewSize.width);
 
@@ -424,7 +438,7 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 
 
 				//Turn on the flash
-				parameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
+				//				parameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
 				mCamera.setParameters(parameters);	
 
 				//mPreviewSize = parameters.getPreviewSize();  
@@ -469,7 +483,7 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 		double targetRatio = (double) w / h;
 		if (sizes == null) return null;
 
-		Size optimalSize = null;
+		Size optimalSize = null; 
 		double minDiff = Double.MAX_VALUE;
 
 		int targetHeight = h;
@@ -506,7 +520,7 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 		//ADDED: remove this: since we already initialized parameters
 		//Camera.Parameters parameters = mCamera.getParameters();
 		mCamera.setParameters(parameters);
-		mCamera.startPreview();
+		//		mCamera.startPreview();
 
 		//mCamera.stopPreview();	
 		//CameraPreview myActivity = (CameraPreview) getContext();
@@ -583,14 +597,14 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 			Log.d("FILE: ","RECORDING..."+frameCount);
 		}
 		else if(frameCount==-1){
-			Log.d("FILE: ","DONE!");
-
+			//			Log.d("FILE: ","DONE!");
 		}
 		else{
 			Log.d("FILE: ","CREATED!");
 			generateDATA();
 			frameCount=-1;
 			checkFile();
+			myActivity.stopTask();
 		}
 	}  
 
@@ -598,27 +612,79 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 		try {
 			File root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 			BufferedReader br = new BufferedReader(new FileReader(root.getAbsolutePath() + "/MyPPG/" + FILENAME));
+			//			BufferedReader br = new BufferedReader(new FileReader(root.getAbsolutePath() + "/MyPPG/" + "RedValues_2014-12-03T23:27:33.txt"));
 			String s = null;
 			int counter = 0;
 			while((s=br.readLine())!=null) {
-//				System.out.println(s);
 				if ((counter > 1) && (counter < meanreds.length+2)) {
 					calculateBPM(s);
 				}
 				counter++;
 			} 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (ArrayIndexOutOfBoundsException k) {
+			System.out.println("");
 		}
+		dipCounter *= 6;
+
 	}
-	
+
+	private int currentFrame = 0;
+	//the number of frames in our window
+	private int windowSize = 10;
+	//array that holds each frameâ€™s positional data: ECG
+	private double positionalData[] = new double[windowSize];
+	//array that holds each fram's time data
+	private long timeData[] = new long[windowSize];
+	private double threshold = 0;
+	private int minFramePeriod = 2;
+	private int periodFrameCounter = minFramePeriod;
+	private int dipCounter = 0;
+
 	private void calculateBPM(String s) {
 		String tokens[] = s.split("\t");
 		System.out.println(tokens[0] + " " + tokens[1] + " " + tokens[2]);
-		
+
+		if(currentFrame < windowSize) {
+			timeData[currentFrame] = Long.valueOf(tokens[1]).longValue(); 
+			positionalData[currentFrame] = Double.parseDouble(tokens[2]);
+			currentFrame++;
+			//			System.out.println(currentFrame);
+		}
+		else {
+			//compute max and min of positional data
+			double min = positionalData[0];
+			double max = positionalData[0];
+			for(int i = 1; i < positionalData.length; i++) {
+				if(positionalData[i] <= min)
+					min = positionalData[i];
+				else if(positionalData[i] > max)
+					max = positionalData[i];
+			}
+			//compute threshold, 3/4 the way towards max
+			threshold = min + (((max-min)/3));
+			System.out.println("HERE: " + max + " " + min + " " + threshold);
+			//check where data crosses threshold
+			for(int i = 1; i< positionalData.length; i++){
+				// don't count an R peak if we are inside the frame period
+				if (periodFrameCounter < minFramePeriod) 
+					periodFrameCounter++;
+				// if data crosses threshold on negative slope
+				else if (positionalData[i-1] > threshold && positionalData[i] <= threshold)	{
+					dipCounter++;
+					periodFrameCounter = 0;			
+				}
+			}
+			//reset frame
+			currentFrame = 0;
+		}
 	}
-	
+
+	int getBPM() {
+		return dipCounter;
+	}
+
 	//This method writes the red pixel values in a text file and stored it in Downloads/MyPPG
 	public void generateDATA() {
 		//This will get the SD Card directory and create a folder named MyFiles in it.
