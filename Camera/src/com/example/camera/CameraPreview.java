@@ -140,7 +140,8 @@ public class CameraPreview extends Activity implements OnClickListener{
 
 	}
 
-
+	private int startTime;
+	private int endTime;
 
 	public void onClick(View v){
 
@@ -155,7 +156,8 @@ public class CameraPreview extends Activity implements OnClickListener{
 
 				//				//Turn on the flash
 				p.setFlashMode(Parameters.FLASH_MODE_TORCH);	
-
+				Calendar c = Calendar.getInstance(); 
+				startTime = c.get(Calendar.SECOND);
 				// Start the preview
 				mCamera.startPreview();
 				btn_startmeasure.setText("Stop");
@@ -164,8 +166,12 @@ public class CameraPreview extends Activity implements OnClickListener{
 				txt_status.setText("Paused");
 				//Turn off the flash
 				p.setFlashMode(Parameters.FLASH_MODE_OFF);
+				Calendar c = Calendar.getInstance(); 
+				endTime = c.get(Calendar.SECOND);
+				long timeTaken = endTime - startTime;
+				long timeMultiplier = 60000 / timeTaken;
 				mCamera.stopPreview();
-				txt_status.setText("BPM: " + mPreview.getBPM());
+				txt_status.setText("BPM: " + startTime);
 				isMeasuring=false;
 				btn_startmeasure.setText("Start");
 			}
@@ -300,7 +306,7 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 	private int npixels;
 
 	//number of frames to record
-	private final int nframe=100; 
+	private final int nframe=10; 
 	//frame countdown till nframe
 	private int frameCount=0;
 	//bpm result
@@ -380,8 +386,8 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 		if (mSupportedPreviewSizes != null) {
 			//Choose smallest Prewvie Size
 			//128x96
-			//			mPreviewSize = mSupportedPreviewSizes.get(mSupportedPreviewSizes.size() - 1);
-			mPreviewSize = mSupportedPreviewSizes.get(mSupportedPreviewSizes.size() - 5);
+						mPreviewSize = mSupportedPreviewSizes.get(mSupportedPreviewSizes.size() - 1);
+//			mPreviewSize = mSupportedPreviewSizes.get(mSupportedPreviewSizes.size() - 5);
 			//			mPreviewSize= getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
 
 			Log.i("finalwidth: ",""+mPreviewSize.width);
@@ -627,7 +633,6 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 			System.out.println("");
 		}
 		dipCounter *= 6;
-
 	}
 
 	private int currentFrame = 0;
