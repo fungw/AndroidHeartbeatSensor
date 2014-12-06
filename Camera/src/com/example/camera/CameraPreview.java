@@ -139,9 +139,12 @@ public class CameraPreview extends Activity implements OnClickListener{
 		}
 
 	}
-
-	private int startTime;
-	private int endTime;
+	//TODO: Here are the variables to store time
+	public double startTime;
+	public double endTime;
+	private int minute;
+	private int second;
+	private int millisecond;
 
 	public void onClick(View v){
 
@@ -155,9 +158,10 @@ public class CameraPreview extends Activity implements OnClickListener{
 				isMeasuring=true;
 
 				//				//Turn on the flash
-				p.setFlashMode(Parameters.FLASH_MODE_TORCH);	
+				p.setFlashMode(Parameters.FLASH_MODE_TORCH);
+				//TODO: Start time when we start measuring
 				Calendar c = Calendar.getInstance(); 
-				startTime = c.get(Calendar.SECOND);
+				startTime = calculateTime(c);
 				// Start the preview
 				mCamera.startPreview();
 				btn_startmeasure.setText("Stop");
@@ -166,12 +170,13 @@ public class CameraPreview extends Activity implements OnClickListener{
 				txt_status.setText("Paused");
 				//Turn off the flash
 				p.setFlashMode(Parameters.FLASH_MODE_OFF);
+				//TODO: End time when we stop measuring and before we display BPM
 				Calendar c = Calendar.getInstance(); 
-				endTime = c.get(Calendar.SECOND);
-				long timeTaken = endTime - startTime;
-				long timeMultiplier = 60000 / timeTaken;
+				endTime = calculateTime(c);
+				//long timeTaken = endTime - startTime;
+				//long timeMultiplier = 60000 / timeTaken;
 				mCamera.stopPreview();
-				txt_status.setText("BPM: " + startTime);
+				txt_status.setText("BPM: " + mPreview.getBPM());
 				isMeasuring=false;
 				btn_startmeasure.setText("Start");
 			}
@@ -271,6 +276,13 @@ public class CameraPreview extends Activity implements OnClickListener{
 		mCamera.setParameters(p);
 		btn_startmeasure.setText("Stop");
 	}
+	//TODO: Created a method to calculate time into milliseconds
+	private double calculateTime(Calendar cal){
+		minute = cal.get(Calendar.MINUTE);
+		second = cal.get(Calendar.SECOND);
+		millisecond = cal.get(Calendar.MILLISECOND);
+		return (minute * 60000) + (second * 1000) + millisecond;
+	}
 }
 
 
@@ -304,15 +316,18 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 	//crop center 100 pixels
 	//private int nCenterPixels=200*200; 
 	private int npixels;
-
+	//TODO: change nframe to increase or decrease the number of samples
 	//number of frames to record
 	private final int nframe=10; 
 	//frame countdown till nframe
 	private int frameCount=0;
 	//bpm result
 	private int result=0;
-
-
+	//TODO: added elapsedTime and dipMultiplier variables for checkFile()
+	//elapsed time between start and end times
+	private double elapsedTime = 0;
+	//multiplier to calculate BPM. Number we need to multiply our dipcounter.
+	private double dipMultiplier = 0.0;
 
 	double meanFiltSm, meanFiltBW;
 
@@ -632,7 +647,10 @@ class Preview extends ViewGroup implements SurfaceHolder.Callback, PreviewCallba
 		} catch (ArrayIndexOutOfBoundsException k) {
 			System.out.println("");
 		}
-		dipCounter *= 6;
+		//TODO: this replaces our previous code of dipcounter *= 6;
+		elapsedTime = Math.abs(myActivity.endTime - myActivity.startTime);
+		dipMultiplier = (60000 / elapsedTime);
+		dipCounter *= dipMultiplier;
 	}
 
 	private int currentFrame = 0;
